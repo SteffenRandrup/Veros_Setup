@@ -48,7 +48,7 @@ class GlobalFourDegree(veros.Veros):
             self.npzd_selected_rules = cfg["selected_rules"]
 
 
-        self.kappaH_min = 9e-5 # NOTE usually 2e-5
+        self.kappaH_min = 7e-5 # NOTE usually 2e-5
 
         self.nud0 = 0.07 / 86400
         self.bbio = 1.038
