@@ -48,14 +48,14 @@ class GlobalFourDegree(veros.Veros):
             self.npzd_selected_rules = cfg["selected_rules"]
 
 
-        self.kappaH_min = 7e-5 # NOTE usually 2e-5
+        self.kappaH_min = 8e-5 # NOTE usually 2e-5
 
-        self.nud0 = 0.07 / 86400
+        self.remineralization_rate_detritus = 0.07 / 86400
         self.bbio = 1.038
         self.cbio = 1.0
-        self.abio_P = 0.27 / 86400
-        self.gbio = 0.13 / 86400
-        self.nupt0 = 0.027 / 86400
+        self.maximum_growth_rate_phyto = 0.27 / 86400
+        self.maximum_grazing_rate = 0.13 / 86400
+        self.fast_recycling_rate_phytoplankton = 0.027 / 86400
         self.specific_mortality_phytoplankton = 0.03 / 86400
         self.quadric_mortality_zooplankton = 0.06 / 86400
         self.zooplankton_growth_efficiency = 0.70
@@ -68,28 +68,13 @@ class GlobalFourDegree(veros.Veros):
         self.collapse_AMOC = False
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         # self.enable_biharmonic_mixing = False
         # self.enable_hor_diffusion = False
         # self.kH = 1e3
         # self.K_hbi = 1e3
 
         self.diskless_mode = False
-        self.force_overwrite = True
+        self.force_overwrite = False
 
         self.coord_degree = True
         self.enable_cyclic_x = True
@@ -226,8 +211,8 @@ class GlobalFourDegree(veros.Veros):
 
             # phytoplankton = 0.14 / (2 ** (np.arange(self.nz))[::-1]) * self.maskT
             # zooplankton = 0.014 / (2 ** (np.arange(self.nz))[::-1]) * self.maskT
-            phytoplankton = 0.14 * np.exp(self.zw) * self.maskT
-            zooplankton = 0.014 * np.exp(self.zw) * self.maskT
+            phytoplankton = 0.14 * np.exp(self.zw / 100) * self.maskT
+            zooplankton = 0.014 * np.exp(self.zw / 100) * self.maskT
 
             self.phytoplankton[:, :, :, :] = phytoplankton[..., np.newaxis]
             self.zooplankton[:, :, :, :] = zooplankton[..., np.newaxis]
@@ -246,23 +231,22 @@ class GlobalFourDegree(veros.Veros):
             self.dop[...] = 20 * self.maskT[..., np.newaxis]
 
         if self.enable_carbon:
-            self.dic[...] = 2300
+            self.DIC[...] = 2300 * self.maskT[..., np.newaxis]
             self.atmospheric_co2[...] = 280
-            self.alkalinity[...] = 2400
+            self.alkalinity[...] = 2400 * self.maskT[..., np.newaxis]
 
             self.hSWS[...] = 5e-7
 
+        # if self.enable_calcifiers:
+        #     self.coccolitophore[...] = self.phytoplankton / 10
+        #     self.caco3[...] = 0.01 * self.maskT[..., np.newaxis]
 
-        if self.enable_calcifiers:
-            self.coccolitophore[...] = self.phytoplankton / 10
-            self.caco3[...] = 0.01 * self.maskT[..., np.newaxis]
+        # if self.enable_iron:
+        #     self.fe[2:-2, 2:-2, -2:] = 8
+        #     self.particulate_fe[2:-2, 2:-2, -2:] = 9
 
-        if self.enable_iron:
-            self.fe[2:-2, 2:-2, -2:] = 8
-            self.particulate_fe[2:-2, 2:-2, -2:] = 9
-
-        if self.enable_oxygen:
-            self.o2[2:-2, 2:-2, -2:] = 20
+        # if self.enable_oxygen:
+        #     self.o2[2:-2, 2:-2, -2:] = 20
 
         # if self.enable_ballast:
         #     self.ballast[2:-2, 2:-2, -2:] = 1
@@ -327,7 +311,7 @@ class GlobalFourDegree(veros.Veros):
         self.diagnostics["snapshot"].output_frequency = self.runlen // 200
         self.diagnostics["snapshot"].output_frequency = 1 * 86400
 
-        self.diagnostics["averages"].output_variables = ["phytoplankton", "po4", "zooplankton", "detritus", "wind_speed", "dic", "alkalinity", "temp", "salt", "u", "v", "surface_tauy", "surface_taux", "kappaH", "psi", "rho", "pCO2", "dco2star", "cflux", "detritus_export"]
+        self.diagnostics["averages"].output_variables = ["phytoplankton", "po4", "zooplankton", "detritus", "wind_speed", "DIC", "alkalinity", "temp", "salt", "u", "v", "surface_tauy", "surface_taux", "kappaH", "psi", "rho", "pCO2", "dpCO2", "dco2star", "cflux", "atmospheric_co2", "yu", "zt", "xt", "yt"]
 
         # self.diagnostics["snapshot"].output_variables = self.diagnostics["averages"].output_variables + ["detritus_export"]
         self.diagnostics["averages"].output_frequency = self.runlen // 200
@@ -338,8 +322,9 @@ class GlobalFourDegree(veros.Veros):
 
         self.diagnostics["npzd"].output_frequency = 10 * 86400
         self.diagnostics["npzd"].save_graph = False
-        self.diagnostics["npzd"].surface_out = ["po4", "phytoplankton"]
+        # self.diagnostics["npzd"].surface_out = ["po4", "phytoplankton"]
         # self.diagnostics["npzd"].output_variables = ["phytoplankton", "po4"]
+        # self.diagnostics["npzd"].bottom_out = ["detritus"]
 
     @veros.veros_method
     def after_timestep(self):
